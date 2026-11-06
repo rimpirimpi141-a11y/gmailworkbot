@@ -1,0 +1,22 @@
+name = "zenox-gmail-bot"
+main = "worker.js"
+compatibility_date = "2025-02-01"
+workers_dev = true
+
+# Cloudflare KV Namespace Binding (Must be bound as `DB`)
+# Run `npx wrangler kv namespace create DB` and replace `id` below with your generated KV Namespace ID.
+[[kv_namespaces]]
+binding = "DB"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_NAMESPACE_ID"
+
+# Non-sensitive default environment variables (Override in Cloudflare Dashboard or via wrangler secret)
+[vars]
+OWNER_ID = "123456789"
+SUPPORT_USERNAME = "@ZenoxWorker"
+FORCE_CHANNEL = "@ZenoxUpdates"
+UPI_DETAILS = "zenoxexchange@upi (Pay & submit 12-digit UTR or Screenshot)"
+
+# Sensitive variables:
+# Set BOT_TOKEN securely via CLI:
+# npx wrangler secret put BOT_TOKEN

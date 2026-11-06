@@ -1,0 +1,6 @@
+{
+  "name": "Zenox Gmail Exchange — Cloudflare Worker Telegram Bot",
+  "description": "Production-ready Cloudflare Workers Telegram Bot repository and interactive dual-client simulator with Cloudflare KV storage for automated Gmail buying, selling, referrals, payouts, and admin management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
