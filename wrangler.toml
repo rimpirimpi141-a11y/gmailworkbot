@@ -7,15 +7,14 @@ workers_dev = true
 # Run `npx wrangler kv namespace create DB` and replace `id` below with your generated KV Namespace ID.
 [[kv_namespaces]]
 binding = "DB"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
-preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_NAMESPACE_ID"
-
+id = "8a079351d4e242b499c6be6682400362"
+preview_id = "8a079351d4e242b499c6be6682400362"
 # Non-sensitive default environment variables (Override in Cloudflare Dashboard or via wrangler secret)
 [vars]
-OWNER_ID = "123456789"
+OWNER_ID = "8670903515"
 SUPPORT_USERNAME = "@ZenoxWorker"
-FORCE_CHANNEL = "@ZenoxUpdates"
-UPI_DETAILS = "zenoxexchange@upi (Pay & submit 12-digit UTR or Screenshot)"
+FORCE_CHANNEL = "@smartmoneyboost2"
+UPI_DETAILS = "9244510835@fam (Pay & submit 12-digit UTR or Screenshot)"
 
 # Sensitive variables:
 # Set BOT_TOKEN securely via CLI:
