@@ -125,13 +125,16 @@ export default function App() {
 
   // Compute live metrics from KV
   const stockCount = (() => {
-    const raw = simState.kvEntries.find((e) => e.key === 'stock:gmails')?.value;
-    if (!raw) return 0;
+    const rawG = simState.kvEntries.find((e) => e.key === 'stock:gmails')?.value;
+    const rawFb = simState.kvEntries.find((e) => e.key === 'stock:facebook')?.value;
+    let total = 0;
     try {
-      return JSON.parse(raw).length;
+      if (rawG) total += JSON.parse(rawG).length;
+      if (rawFb) total += JSON.parse(rawFb).length;
     } catch {
-      return 0;
+      // ignore
     }
+    return total;
   })();
 
   const userCount = (() => {
@@ -235,11 +238,11 @@ export default function App() {
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 font-mono tabular-nums">
               <span>Cloudflare Workers ES Modules</span>
               <span aria-hidden="true">·</span>
-              <span>KV Namespace: env.DB</span>
+              <span>Gmail & Facebook Trading</span>
               <span aria-hidden="true">·</span>
-              <span>Buy: ₹22 / Sell: ₹15 / Ref: ₹2 / Min Payout: ₹50</span>
+              <span>Colon-Free Credentials + Recovery Notice</span>
               <span aria-hidden="true">·</span>
-              <span>Zero Placeholders</span>
+              <span>Min Payout: ₹100</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
               Single-File Telegram Bot Repository & Dual-Client Worker Sandbox
@@ -412,42 +415,30 @@ export default function App() {
               {/* Technical Spec Verification Checklist */}
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
                 <h3 className="text-sm font-semibold text-white">
-                  Implemented Modules in worker.js
+                  Upgraded Modules in worker.js (Mail Master Pro)
                 </h3>
                 <ul className="space-y-2.5 text-xs text-slate-300 leading-relaxed">
                   <li>
-                    <strong className="text-white">A. Force Join & ₹2 Referral:</strong>{' '}
-                    Live <code className="font-mono text-sky-300">getChatMember</code> gate on{' '}
-                    <code className="font-mono text-sky-300">/start</code> & all interactions;
-                    credits ₹2 to referrer wallet on verification.
+                    <strong className="text-white">1. Mail Master Pro Admin Panel:</strong>{' '}
+                    Full control center with <code className="font-mono text-sky-300">👥 View User List</code>,{' '}
+                    <code className="font-mono text-sky-300">🔍 Inspect User</code> (Add/Deduct Balance, Ban/Unban),{' '}
+                    <code className="font-mono text-sky-300">⚙️ Set Rates & Min Withdraw</code>, and Buy/Sell/Payout queues.
                   </li>
                   <li>
-                    <strong className="text-white">B. Buy Gmail (₹22):</strong> Quantity
-                    prompt → Invoice & <code className="font-mono text-sky-300">UPI_DETAILS</code>{' '}
-                    → UTR/Photo proof → Admin approve pops from{' '}
-                    <code className="font-mono text-sky-300">stock:gmails</code> & DMs buyer.
+                    <strong className="text-white">2. Gmail & Facebook Account Trading:</strong>{' '}
+                    Separate stock & dynamic rate configurations for both{' '}
+                    <code className="font-mono text-sky-300">stock:gmails</code> and{' '}
+                    <code className="font-mono text-sky-300">stock:facebook</code>.
                   </li>
                   <li>
-                    <strong className="text-white">C. Sell Gmail (₹15):</strong> Validates{' '}
-                    <code className="font-mono text-sky-300">email:password:recovery</code> →{' '}
-                    <code className="font-mono text-sky-300">PENDING_SELL_QUEUE</code> → Admin
-                    approve credits ₹15/acc + adds to active stock.
+                    <strong className="text-white">3. Colon-Free Format & Recovery Notice:</strong>{' '}
+                    Direct space-separated credential parsing (<code className="font-mono text-sky-300">email password</code>)
+                    and explicit 🛡 Recovery Mail Security Notices on every account card.
                   </li>
                   <li>
-                    <strong className="text-white">D. Wallet & Payouts (Min ₹50):</strong>{' '}
-                    Balance check, UPI/USDT payout request, Admin Mark Paid or Reject &
-                    Automatic Refund.
-                  </li>
-                  <li>
-                    <strong className="text-white">E. Interactive Settings:</strong> Inline
-                    toggles for Hindi/English, Notifications ON/OFF, and INR/USDT (1 USDT =
-                    ₹90).
-                  </li>
-                  <li>
-                    <strong className="text-white">F. Admin Control Panel:</strong> Row 5{' '}
-                    <code className="font-mono text-sky-300">⚡ Admin Dashboard</code> visible
-                    strictly to <code className="font-mono text-sky-300">OWNER_ID</code> & KV
-                    sub-admins.
+                    <strong className="text-white">4. Strict ₹100 Minimum Withdrawal:</strong>{' '}
+                    Default <code className="font-mono text-sky-300">MIN_WITHDRAW_INR = 100</code> enforced across Wallet &
+                    Payouts, dynamically configurable in KV <code className="font-mono text-sky-300">system:config</code>.
                   </li>
                 </ul>
               </div>
@@ -607,7 +598,7 @@ export default function App() {
               {/* LEFT: REGULAR USER CLIENT */}
               <TelegramClientPane
                 title="Regular User Telegram Client"
-                subtitle={`${SIM_USERS.USER.first_name} · chat_id: ${SIM_USERS.USER.id} · Standard 4-Row Keyboard`}
+                subtitle={`${SIM_USERS.USER.first_name} · chat_id: ${SIM_USERS.USER.id} · Gmail & FB Trading Keyboard`}
                 chatId={SIM_USERS.USER.id}
                 messages={simState.messages[SIM_USERS.USER.id] || []}
                 replyKeyboard={simState.replyKeyboards[SIM_USERS.USER.id] || []}
@@ -618,11 +609,11 @@ export default function App() {
                 quickActions={[
                   { label: '/start', text: '/start' },
                   {
-                    label: 'Paste Sample Gmail to Sell',
-                    text: 'neha.kapoor88@gmail.com:Neha@9921:recov.neha@gmail.com',
+                    label: 'Sell Fresh Account (No Colons)',
+                    text: 'neha.kapoor88@gmail.com Neha@9921',
                   },
                   {
-                    label: 'Send Sample 12-Digit UTR',
+                    label: 'Send 12-Digit UTR',
                     text: 'UTR 431988271652 Paid via PhonePe',
                   },
                 ]}
@@ -631,8 +622,8 @@ export default function App() {
 
               {/* RIGHT: ADMIN / OWNER CLIENT */}
               <TelegramClientPane
-                title="Owner / Admin Telegram Client"
-                subtitle={`${SIM_USERS.ADMIN.first_name} · OWNER_ID: ${SIM_USERS.ADMIN.id} · Row 5 Admin Dashboard Enabled`}
+                title="Owner / Admin Telegram Client (Mail Master Pro)"
+                subtitle={`${SIM_USERS.ADMIN.first_name} · OWNER_ID: ${SIM_USERS.ADMIN.id} · Full Admin Control Panel`}
                 chatId={SIM_USERS.ADMIN.id}
                 messages={simState.messages[SIM_USERS.ADMIN.id] || []}
                 replyKeyboard={simState.replyKeyboards[SIM_USERS.ADMIN.id] || []}
@@ -642,11 +633,8 @@ export default function App() {
                 chatEndRef={adminChatEndRef}
                 quickActions={[
                   { label: '⚡ Admin Dashboard', text: '⚡ Admin Dashboard' },
-                  {
-                    label: 'Paste 2 Bulk Stock Accounts',
-                    text: 'stock.alpha1@gmail.com:Alpha#111:rec.alpha1@gmail.com\nstock.alpha2@gmail.com:Alpha#222:rec.alpha2@gmail.com',
-                  },
-                  { label: '/start', text: '/start' },
+                  { label: '👥 View User List', text: '👥 View User List' },
+                  { label: '⚙️ Set Rates', text: '⚙️ Set Rates & Min Withdraw' },
                 ]}
                 allowMockPhoto={false}
               />

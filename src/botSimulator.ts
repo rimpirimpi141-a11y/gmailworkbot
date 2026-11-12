@@ -125,6 +125,12 @@ export class TelegramWorkerSimulator {
 
   constructor() {
     this.kv = new InMemoryKVNamespace(() => this.notify());
+    (globalThis as Record<string, any>).__SIMULATOR_API_HANDLER__ = async (
+      method: string,
+      payload: Record<string, any>
+    ) => {
+      return this.handleTelegramApiCall(method, payload);
+    };
     this.seedInitialState();
   }
 
@@ -144,15 +150,64 @@ export class TelegramWorkerSimulator {
 
     const now = new Date().toISOString();
     this.kv.clearAndSeed({
+      'system:config': {
+        BUY_GMAIL_INR: 22,
+        SELL_GMAIL_INR: 15,
+        BUY_FB_INR: 30,
+        SELL_FB_INR: 20,
+        REF_BONUS_INR: 2,
+        MIN_WITHDRAW_INR: 100,
+        USDT_RATE_INR: 90,
+      },
       'stock:gmails': [
-        'rohan.verma2026@gmail.com:Rohan#8821:recovery.rohan@gmail.com',
-        'priya.nair.dev@gmail.com:Priya$9910:pnair.backup@gmail.com',
-        'vikram.singh.hq@gmail.com:Vikram@4412:vsingh.recov@gmail.com',
-        'ananya.k.studio@gmail.com:Ananya!7734:ananya.alt@gmail.com',
-        'kabir.mehta.pro@gmail.com:Kabir*5590:kabir.rec@gmail.com',
+        {
+          identifier: 'rohan.verma2026@gmail.com',
+          password: 'Rohan#8821',
+          recovery: '',
+          raw_clean: 'rohan.verma2026@gmail.com Rohan#8821',
+        },
+        {
+          identifier: 'priya.nair.dev@gmail.com',
+          password: 'Priya$9910',
+          recovery: 'pnair.backup@gmail.com',
+          raw_clean: 'priya.nair.dev@gmail.com Priya$9910 pnair.backup@gmail.com',
+        },
+        {
+          identifier: 'vikram.singh.hq@gmail.com',
+          password: 'Vikram@4412',
+          recovery: '',
+          raw_clean: 'vikram.singh.hq@gmail.com Vikram@4412',
+        },
+        {
+          identifier: 'ananya.k.studio@gmail.com',
+          password: 'Ananya!7734',
+          recovery: 'ananya.alt@gmail.com',
+          raw_clean: 'ananya.k.studio@gmail.com Ananya!7734 ananya.alt@gmail.com',
+        },
+      ],
+      'stock:facebook': [
+        {
+          identifier: '10008923415678',
+          password: 'FbPass#4410',
+          recovery: '',
+          raw_clean: '10008923415678 FbPass#4410',
+        },
+        {
+          identifier: '10009182736455',
+          password: 'FbSecure$882',
+          recovery: 'fb.recov.mail@gmail.com',
+          raw_clean: '10009182736455 FbSecure$882 fb.recov.mail@gmail.com',
+        },
+        {
+          identifier: 'arjun.fb.profile@gmail.com',
+          password: 'ArjunFB@2026',
+          recovery: '',
+          raw_clean: 'arjun.fb.profile@gmail.com ArjunFB@2026',
+        },
       ],
       'users:list': [SIM_USERS.ADMIN.id, SIM_USERS.USER.id],
       'admins:list': [],
+      'PENDING_BUY_QUEUE': [],
       'PENDING_SELL_QUEUE': [],
       'payouts:pending_list': [],
       'system:maintenance': false,
@@ -160,8 +215,8 @@ export class TelegramWorkerSimulator {
         id: SIM_USERS.USER.id,
         first_name: SIM_USERS.USER.first_name,
         username: SIM_USERS.USER.username,
-        balance: 65,
-        total_earned: 65,
+        balance: 120,
+        total_earned: 120,
         total_withdrawn: 0,
         referred_by: null,
         ref_rewarded: false,
@@ -170,6 +225,7 @@ export class TelegramWorkerSimulator {
         lang: 'en',
         notifications: true,
         currency: 'INR',
+        banned: false,
         orders: [],
         sells: [],
         payouts: [],
@@ -180,8 +236,8 @@ export class TelegramWorkerSimulator {
         id: SIM_USERS.ADMIN.id,
         first_name: SIM_USERS.ADMIN.first_name,
         username: SIM_USERS.ADMIN.username,
-        balance: 250,
-        total_earned: 250,
+        balance: 350,
+        total_earned: 350,
         total_withdrawn: 100,
         referred_by: null,
         ref_rewarded: false,
@@ -190,6 +246,7 @@ export class TelegramWorkerSimulator {
         lang: 'en',
         notifications: true,
         currency: 'INR',
+        banned: false,
         orders: [],
         sells: [],
         payouts: [],
@@ -245,26 +302,12 @@ export class TelegramWorkerSimulator {
     this.notify();
   }
 
-  private async withTelegramFetchMock<T>(fn: () => Promise<T>): Promise<T> {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-      if (urlStr.startsWith('https://api.telegram.org/bot')) {
-        const method = urlStr.split('/').pop() || '';
-        const body = init?.body ? JSON.parse(String(init.body)) : {};
-        const apiResult = this.handleTelegramApiCall(method, body);
-        return new Response(JSON.stringify(apiResult), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      return originalFetch(input, init);
-    };
-
-    try {
-      return await fn();
-    } finally {
-      globalThis.fetch = originalFetch;
+  private registerHandler() {
+    const g = globalThis as Record<string, any>;
+    if (typeof g.__SIMULATOR_API_HANDLER__ !== 'function') {
+      g.__SIMULATOR_API_HANDLER__ = async (method: string, payload: Record<string, any>) => {
+        return this.handleTelegramApiCall(method, payload);
+      };
     }
   }
 
@@ -340,7 +383,9 @@ export class TelegramWorkerSimulator {
 
     if (method === 'answerCallbackQuery') {
       if (payload.text) {
-        const targetChatId = String(payload._sim_chat_id || SIM_USERS.USER.id);
+        const rawCbId = String(payload.callback_query_id || '');
+        const extractedChatId = rawCbId.includes('_') ? rawCbId.split('_')[0] : '';
+        const targetChatId = extractedChatId || String(payload._sim_chat_id || SIM_USERS.USER.id);
         this.toasts[targetChatId] = {
           id: String(Date.now()),
           chat_id: targetChatId,
@@ -403,9 +448,8 @@ export class TelegramWorkerSimulator {
       body: JSON.stringify(webhookPayload),
     });
 
-    await this.withTelegramFetchMock(async () => {
-      await worker.fetch(req, { ...this.envVars, DB: this.kv }, {});
-    });
+    this.registerHandler();
+    await worker.fetch(req, { ...this.envVars, DB: this.kv }, {});
   }
 
   public async triggerCallbackQuery(chatId: string, messageId: number, callbackData: string) {
@@ -437,21 +481,8 @@ export class TelegramWorkerSimulator {
       body: JSON.stringify(webhookPayload),
     });
 
-    await this.withTelegramFetchMock(async () => {
-      // Also attach chatId hint to answerCallbackQuery
-      const origHandle = this.handleTelegramApiCall.bind(this);
-      this.handleTelegramApiCall = (method: string, payload: Record<string, any>) => {
-        if (method === 'answerCallbackQuery') {
-          payload._sim_chat_id = chatId;
-        }
-        return origHandle(method, payload);
-      };
-      try {
-        await worker.fetch(req, { ...this.envVars, DB: this.kv }, {});
-      } finally {
-        this.handleTelegramApiCall = origHandle;
-      }
-    });
+    this.registerHandler();
+    await worker.fetch(req, { ...this.envVars, DB: this.kv }, {});
   }
 }
 

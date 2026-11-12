@@ -1,6 +1,6 @@
-# Zenox Gmail Exchange — Cloudflare Workers Telegram Bot (`worker.js`)
+# Zenox Mail & Social Master Pro — Cloudflare Workers Telegram Bot (`worker.js`)
 
-A high-performance, zero-dependency, single-file Telegram Bot (`worker.js`) built on **Cloudflare Workers (ES Modules)** with **Cloudflare KV (`env.DB`)** for full state management, user wallets, automated Gmail stock delivery, sell queues, referral tracking, and multi-admin operations.
+A high-performance, zero-dependency, single-file Telegram Bot (`worker.js`) built on **Cloudflare Workers (ES Modules)** with **Cloudflare KV (`env.DB`)** for full state management, Gmail & Facebook account trading, colon-free credential formatting, recovery mail security notices, dynamic rate management, user inspection, and multi-admin operations.
 
 ---
 
@@ -17,32 +17,27 @@ A high-performance, zero-dependency, single-file Telegram Bot (`worker.js`) buil
 
 ---
 
-## ✨ Key Features & Architecture
+## ✨ Key Features & Architecture Upgrades
 
-1. **Force Channel Join & Referral Engine (`₹2` Bonus)**
-   - Blocks all bot interactions until the user joins `FORCE_CHANNEL` (verified live via Telegram `getChatMember` API).
-   - **Important:** Make sure your bot is added as an **Administrator** inside your `FORCE_CHANNEL` so `getChatMember` can verify members accurately.
-   - Automatically awards **₹2** to the referrer's wallet the moment a referred user (`/start <ref_id>`) verifies channel membership.
+1. **Mail Master Pro Style Admin Control Center (`⚡ Admin Dashboard` / `/admin`)**
+   - **📊 Inventory & Stats:** Live overview of registered users, active Gmail stock, active Facebook stock, pending buy/sell/payout queues, and current rates.
+   - **👥 View User List & 🔍 Inspect User:** Paginated directory of all registered users with inline `🔍 Inspect` cards showing wallet balance, total lifetime earnings, buy/sell history, and direct admin actions (`➕ Add Balance`, `➖ Deduct Balance`, `🚫 Ban / ✅ Unban User`).
+   - **⚙️ Set Rates & Min Withdraw:** Interactive inline configuration panel to dynamically update Buy/Sell rates for Gmail and Facebook, Referral Bonus, USDT Exchange Rate, and the **Minimum Withdrawal limit (default strictly ₹100)** in `system:config`.
+   - **🛒 Pending Buy Orders, 📥 Pending Sell Queue & 💳 Pending Payouts:** Dedicated queue managers with 1-click approval or custom-note rejection.
+   - **➕ Add Gmail Stock & ➕ Add FB Stock:** Separate bulk line-by-line stock loaders for Gmail (`stock:gmails`) and Facebook (`stock:facebook`).
+   - **📢 Broadcast Message, 🛡 Admin Manager & 🔧 Maintenance Mode.**
 
-2. **Automated Buy Gmail Workflow (`₹22` / account)**
-   - Checks active stock in `stock:gmails` KV array -> Prompts quantity -> Calculates total in INR/USDT -> Displays `UPI_DETAILS` & unique Order ID -> Accepts UTR text or Screenshot photo -> Sends interactive **Approve / Reject** card to Admins.
-   - On `✅ Approve Order #{id}`, automatically pops the exact quantity from `stock:gmails` KV and DMs the buyer in `email:password:recovery` format.
-   - On `❌ Reject Order #{id}`, prompts the Admin for a custom rejection reason and sends it to the buyer.
+2. **Dual-Service Trading: Gmail & Facebook Accounts**
+   - **🛒 Buy Gmail & 📥 Sell Gmail** (`stock:gmails`, default Buy ₹22 / Sell ₹15).
+   - **📘 Buy Facebook & 📤 Sell Facebook** (`stock:facebook`, default Buy ₹30 / Sell ₹20).
 
-3. **Automated Sell Gmail Queue (`₹15` / account)**
-   - Accepts single or multi-line `email:password:recovery` submissions -> Pushes to `PENDING_SELL_QUEUE` and `sells:${id}` -> Alerts Admins.
-   - On Admin approval, credits **₹15 per account** to the seller's wallet and appends the verified accounts directly into active `stock:gmails`.
+3. **Clean Colon-Free Credential Format & Recovery Mail Notices**
+   - **No Colons Required:** Users and admins submit accounts using simple space separation (`email password` or `uid password`), with optional recovery email (`email password recovery@mail.com`). Legacy colon/pipe inputs are also automatically normalized into clean objects.
+   - **Explicit Recovery Mail Notice:** Every delivered or previewed account displays a clean, colon-free card with an explicit **🛡 Recovery Mail Notice** indicating either `"No Recovery Mail Linked (Fresh Account — bind your own recovery email & 2FA immediately)"` or showing the attached recovery email with security instructions.
 
-4. **Wallet & Payout System (`₹50` Minimum)**
-   - Tracks available balance, lifetime earnings, referral earnings, and withdrawal history.
-   - Enforces a ₹50 minimum withdrawal limit, locks funds upon request, and routes `✅ Mark Paid` / `❌ Reject Refund` inline buttons to Admins. Rejecting a payout automatically refunds the user's wallet balance.
-
-5. **Interactive Settings & Bilingual Support**
-   - Inline toggles for **Language (English / Hindi)**, **Notifications (ON / OFF)**, and **Currency Display (INR ₹ / USDT $ at 1 USDT = ₹90)**.
-
-6. **Role-Based Admin Control Panel (`⚡ Admin Dashboard` / `/admin`)**
-   - Dynamically visible on Row 5 of the bottom reply keyboard **only** for `OWNER_ID` and sub-admins stored in `admins:list`.
-   - Includes **➕ Add Stock** (bulk line-by-line paste), **📊 Check Inventory & Stats**, **📥 Pending Sell Queue**, **💳 Pending Payouts**, **👥 Admin Manager**, **📢 Broadcast Message**, and **🔧 Maintenance Mode**.
+4. **Strict ₹100 Minimum Withdrawal & Wallet Engine**
+   - Default minimum withdrawal is strictly **₹100** (`MIN_WITHDRAW_INR: 100`), enforced across wallet checks and withdrawal requests.
+   - Supports UPI and USDT (TRC20/BEP20) payouts with automatic wallet refund if an admin rejects a payout.
 
 ---
 
@@ -50,25 +45,18 @@ A high-performance, zero-dependency, single-file Telegram Bot (`worker.js`) buil
 
 ### Option A: Deploy via Wrangler CLI (Recommended)
 
-#### 1. Clone the Repository & Install Wrangler
+#### 1. Install Wrangler & Authenticate
 ```bash
-git clone https://github.com/YOUR_USERNAME/zenox-gmail-bot.git
-cd zenox-gmail-bot
 npm install
-```
-
-#### 2. Authenticate with Cloudflare
-```bash
 npx wrangler login
 ```
 
-#### 3. Create the Cloudflare KV Namespace (`DB`)
-Run the following command to create your production and preview KV namespaces:
+#### 2. Create the Cloudflare KV Namespace (`DB`)
 ```bash
 npx wrangler kv namespace create DB
 npx wrangler kv namespace create DB --preview
 ```
-Copy the `id` and `preview_id` output from your terminal and paste them into `wrangler.toml`:
+Copy the `id` and `preview_id` into `wrangler.toml`:
 ```toml
 [[kv_namespaces]]
 binding = "DB"
@@ -76,8 +64,8 @@ id = "YOUR_PRODUCTION_KV_NAMESPACE_ID"
 preview_id = "YOUR_PREVIEW_KV_NAMESPACE_ID"
 ```
 
-#### 4. Configure Environment Variables & Secrets
-Update `[vars]` in `wrangler.toml` with your Telegram details:
+#### 3. Configure Environment Variables & Secrets
+Update `[vars]` in `wrangler.toml`:
 ```toml
 [vars]
 OWNER_ID = "YOUR_TELEGRAM_NUMERIC_USER_ID"
@@ -85,67 +73,16 @@ SUPPORT_USERNAME = "@ZenoxWorker"
 FORCE_CHANNEL = "@YourChannelUsername"
 UPI_DETAILS = "yourmerchant@upi (Pay & send 12-digit UTR or Screenshot)"
 ```
-Set your secret `BOT_TOKEN` securely via Wrangler CLI:
+Set your secret `BOT_TOKEN`:
 ```bash
 npx wrangler secret put BOT_TOKEN
-# Paste your token from @BotFather when prompted
 ```
 
-#### 5. Deploy to Cloudflare Workers
+#### 4. Deploy & Register Webhook
 ```bash
 npm run deploy
-# or: npx wrangler deploy
 ```
-Wrangler will output your live Worker URL, for example:
-`https://zenox-gmail-bot.YOUR_SUBDOMAIN.workers.dev`
-
----
-
-### Option B: Deploy via GitHub + Cloudflare Dashboard (No CLI Needed)
-
-1. Push this repository (`worker.js`, `wrangler.toml`, `package.json`, `.gitignore`, `.env.example`, `README.md`) to your GitHub account.
-2. Log in to the **Cloudflare Dashboard** → **Workers & Pages** → **KV** → click **Create a namespace** named `ZENOX_BOT_DB`.
-3. Go to **Workers & Pages** → **Create** → **Import a repository** (or create a Worker and paste `worker.js`).
-4. In your Worker settings, go to **Settings** → **Bindings** → **Add Binding** → **KV Namespace**:
-   - **Variable name:** `DB` *(must be exact)*
-   - **KV namespace:** Select `ZENOX_BOT_DB`
-5. Go to **Settings** → **Variables and Secrets** and add:
-   - `BOT_TOKEN` (Secret): Your BotFather token
-   - `OWNER_ID` (Text): Your numeric Telegram User ID (get it from `@userinfobot`)
-   - `SUPPORT_USERNAME` (Text): `@ZenoxWorker`
-   - `FORCE_CHANNEL` (Text): `@YourChannelUsername` (remember to add the bot as an Admin in this channel!)
-   - `UPI_DETAILS` (Text): Your UPI ID / payment instructions
-6. Click **Deploy**.
-
----
-
-## 🔗 Setting Up the Telegram Webhook
-
-Once deployed, bind your Telegram Bot to your Cloudflare Worker URL using **either** method below:
-
-### Method 1: Built-in Auto-Registration Route (Fastest)
-Simply open this URL in your browser:
-```text
-https://zenox-gmail-bot.YOUR_SUBDOMAIN.workers.dev/register-webhook
-```
-It will automatically call Telegram's `setWebhook` API pointing to your Worker root URL and return:
-```json
-{
-  "webhookUrl": "https://zenox-gmail-bot.YOUR_SUBDOMAIN.workers.dev/",
-  "result": {
-    "ok": true,
-    "result": true,
-    "description": "Webhook was set"
-  }
-}
-```
-
-### Method 2: Manual `curl` Command
-```bash
-curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
-     -H "Content-Type: application/json" \
-     -d '{"url": "https://zenox-gmail-bot.YOUR_SUBDOMAIN.workers.dev/", "drop_pending_updates": true}'
-```
+Then open `https://zenox-gmail-bot.YOUR_SUBDOMAIN.workers.dev/register-webhook` in your browser to automatically bind your Telegram Webhook.
 
 ---
 
@@ -153,14 +90,17 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 
 | KV Key | Type | Description |
 | :--- | :--- | :--- |
-| `user:${chat_id}:data` | JSON Object | User profile, wallet balance, referral stats, language, currency, order IDs |
+| `system:config` | JSON Object | Dynamic rates (`BUY_GMAIL_INR`, `SELL_GMAIL_INR`, `BUY_FB_INR`, `SELL_FB_INR`, `MIN_WITHDRAW_INR`: 100, `REF_BONUS_INR`, `USDT_RATE_INR`) |
+| `user:${chat_id}:data` | JSON Object | User profile, wallet balance, referral stats, language, currency, ban status, order IDs |
 | `user:${chat_id}:state` | JSON Object | Active multi-step conversational state (`action`, `meta`) |
-| `stock:gmails` | JSON Array | Active inventory of `email:password:recovery` strings |
-| `orders:${id}` | JSON Object | Buy order record, buyer info, UTR/screenshot proof, delivery status |
-| `sells:${id}` | JSON Object | Sell submission record, submitted accounts, payout status |
+| `stock:gmails` | JSON Array | Active inventory of verified Gmail account objects (`identifier`, `password`, `recovery`) |
+| `stock:facebook` | JSON Array | Active inventory of verified Facebook account objects (`identifier`, `password`, `recovery`) |
+| `orders:${id}` | JSON Object | Buy order record (`GMAIL` or `FACEBOOK`), buyer info, UTR/screenshot proof, delivery status |
+| `PENDING_BUY_QUEUE` | JSON Array | Queue of pending buy order IDs awaiting Admin verification |
+| `sells:${id}` | JSON Object | Sell submission record (`GMAIL` or `FACEBOOK`), submitted accounts, payout status |
 | `PENDING_SELL_QUEUE` | JSON Array | Queue of pending sell submission IDs awaiting Admin review |
 | `payouts:${id}` | JSON Object | Withdrawal request record, UPI/USDT address, status |
 | `payouts:pending_list` | JSON Array | Queue of pending withdrawal IDs |
-| `users:list` | JSON Array | Global list of registered user chat IDs for broadcasts & stats |
+| `users:list` | JSON Array | Global list of registered user chat IDs for User List, Inspect User & Broadcasts |
 | `admins:list` | JSON Array | Dynamic sub-admin Telegram User IDs managed via Admin Manager |
 | `system:maintenance` | JSON Boolean | Global maintenance mode flag (`true` / `false`) |
